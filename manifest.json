@@ -1,32 +1,38 @@
 {
   "name": "BSG Gestion de Taxi",
   "short_name": "BSG",
-  "description": "Gestion de caisse et comptabilité pour Bilongo Services Group",
-  "start_url": "/bsg-app/index.html",
-  "scope": "/bsg-app/",
+  "description": "Gestion de caisse et comptabilite pour Bilongo Services Group",
   "id": "/bsg-app/",
+  "start_url": "/bsg-app/",
+  "scope": "/bsg-app/",
   "display": "standalone",
-  "display_override": ["standalone", "fullscreen"],
+  "display_override": [
+    "standalone",
+    "fullscreen"
+  ],
   "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#0f172a",
-  "lang": "fr",
-  "categories": ["business", "productivity"],
+  "lang": "fr-FR",
+  "categories": [
+    "business",
+    "productivity"
+  ],
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "/bsg-app/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icon-512.png",
+      "src": "/bsg-app/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icon-512.png",
+      "src": "/bsg-app/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
