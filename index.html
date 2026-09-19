@@ -3120,7 +3120,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
+    navigator.serviceWorker.register('/bsg-app/sw.js')
       .then(reg => console.log('✅ Service Worker actif — portée :', reg.scope))
       .catch(err => console.warn('⚠️ Service Worker non enregistré :', err));
   });
