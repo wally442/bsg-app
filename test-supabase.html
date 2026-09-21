@@ -10,14 +10,23 @@
   .ok { color: green; font-weight: bold; }
   .ko { color: red; font-weight: bold; }
   pre { background: #f1f5f9; padding: 10px; border-radius: 5px; overflow: auto; font-size: 11px; white-space: pre-wrap; }
-  button { background: #0f172a; color: white; padding: 10px 20px; border: 0; border-radius: 6px; font-weight: bold; }
+  input { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+  button { background: #0f172a; color: white; padding: 10px 20px; border: 0; border-radius: 6px; font-weight: bold; margin-top: 10px; cursor: pointer; }
 </style>
 </head>
 <body>
 <div class="box">
-  <h1>🔌 Test de connexion Supabase — BSG</h1>
-  <p>Statut : <span id="status">Chargement...</span></p>
-  <button onclick="testRead()">Tester la lecture des données</button>
+  <h1>🔌 Test Supabase BSG</h1>
+
+  <p><strong>1. Connexion</strong></p>
+  <input id="email" type="email" placeholder="Email" value="gilleswalterbilongo42@gmail.com">
+  <input id="password" type="password" placeholder="Mot de passe">
+  <button onclick="doLogin()">Se connecter</button>
+  <p>Statut : <span id="status">Non connecté</span></p>
+
+  <p><strong>2. Lire les données</strong></p>
+  <button onclick="testRead()">Tester la lecture</button>
+
   <pre id="result"></pre>
 </div>
 
@@ -27,35 +36,45 @@ const SUPABASE_URL = 'https://iwaaeqbepfwjttrrilbj.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3YWFlcWJlcGZ3anR0cnJpbGJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk2ODg0NTYsImV4cCI6MjEwNTI2NDQ1Nn0.YQCMAQTiMCNeGcJPz3bEFCZ-CrDigccpE5Zu6LMhuZ8';
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-document.getElementById('status').innerHTML = '<span class="ok">✅ Client Supabase chargé</span>';
+
+async function doLogin() {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  const status = document.getElementById('status');
+
+  status.textContent = 'Connexion...';
+
+  const { data, error } = await supabaseClient.auth.signInWithPassword({
+    email: email,
+    password: password
+  });
+
+  if (error) {
+    status.innerHTML = '<span class="ko">❌ ' + error.message + '</span>';
+    return;
+  }
+
+  status.innerHTML = '<span class="ok">✅ Connecté : ' + data.user.email + '</span>';
+}
 
 async function testRead() {
   const result = document.getElementById('result');
-  result.textContent = 'Lecture en cours...';
+  result.textContent = 'Lecture...';
 
   try {
-    const { data: vehicles, error: err1 } = await supabaseClient
-      .from('vehicles')
-      .select('*')
-      .limit(3);
+    const { data: vehicles, error: e1 } = await supabaseClient.from('vehicles').select('*');
+    if (e1) throw e1;
 
-    if (err1) throw err1;
-    result.textContent = '✅ VÉHICULES (' + vehicles.length + ' trouvés) :\n';
-    vehicles.forEach(v => {
-      result.textContent += '  - ' + v.matricule + ' : ' + v.driver_name + '\n';
-    });
+    result.textContent = '✅ VÉHICULES (' + vehicles.length + ') :\n';
+    vehicles.forEach(v => result.textContent += '  - ' + v.matricule + ' : ' + v.driver_name + '\n');
 
-    const { data: cashiers, error: err2 } = await supabaseClient
-      .from('cashiers')
-      .select('*');
+    const { data: cashiers, error: e2 } = await supabaseClient.from('cashiers').select('*');
+    if (e2) throw e2;
 
-    if (err2) throw err2;
-    result.textContent += '\n✅ CAISSIERS (' + cashiers.length + ' trouvés) :\n';
-    cashiers.forEach(c => {
-      result.textContent += '  - ' + c.name + '\n';
-    });
+    result.textContent += '\n✅ CAISSIERS (' + cashiers.length + ') :\n';
+    cashiers.forEach(c => result.textContent += '  - ' + c.name + '\n');
 
-    result.textContent += '\n🎉 CONNEXION RÉUSSIE !';
+    result.textContent += '\n🎉 TOUT FONCTIONNE !';
   } catch (e) {
     result.textContent = '❌ ERREUR : ' + e.message;
   }
