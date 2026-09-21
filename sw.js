@@ -3,7 +3,7 @@
 // Version 4 — compatible GitHub Pages (/bsg-app/)
 // =====================================================================
 
-const CACHE_NAME = 'bsg-cache-v4';
+const CACHE_NAME = 'bsg-cache-v5';
 
 const APP_SHELL = [
   '/bsg-app/',
