@@ -1,6 +1,6 @@
 // =====================================================================
 // SERVICE WORKER BSG — PWA / cache hors-ligne
-// Version 4 — compatible GitHub Pages (/bsg-app/)
+// Version 5 — compatible GitHub Pages (/bsg-app/)
 // =====================================================================
 
 const CACHE_NAME = 'bsg-cache-v5';
