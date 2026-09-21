@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Test Supabase BSG</title>
+<style>
+  body { font-family: Arial; padding: 20px; background: #f1f5f9; }
+  .box { background: white; padding: 20px; border-radius: 10px; max-width: 500px; margin: auto; }
+  h1 { font-size: 18px; }
+  .ok { color: green; font-weight: bold; }
+  .ko { color: red; font-weight: bold; }
+  pre { background: #f1f5f9; padding: 10px; border-radius: 5px; overflow: auto; font-size: 11px; white-space: pre-wrap; }
+  button { background: #0f172a; color: white; padding: 10px 20px; border: 0; border-radius: 6px; font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>🔌 Test de connexion Supabase — BSG</h1>
+  <p>Statut : <span id="status">Chargement...</span></p>
+  <button onclick="testRead()">Tester la lecture des données</button>
+  <pre id="result"></pre>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://iwaaeqbepfwjttrrilbj.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3YWFlcWJlcGZ3anR0cnJpbGJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk2ODg0NTYsImV4cCI6MjEwNTI2NDQ1Nn0.YQCMAQTiMCNeGcJPz3bEFCZ-CrDigccpE5Zu6LMhuZ8';
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+document.getElementById('status').innerHTML = '<span class="ok">✅ Client Supabase chargé</span>';
+
+async function testRead() {
+  const result = document.getElementById('result');
+  result.textContent = 'Lecture en cours...';
+
+  try {
+    const { data: vehicles, error: err1 } = await supabaseClient
+      .from('vehicles')
+      .select('*')
+      .limit(3);
+
+    if (err1) throw err1;
+    result.textContent = '✅ VÉHICULES (' + vehicles.length + ' trouvés) :\n';
+    vehicles.forEach(v => {
+      result.textContent += '  - ' + v.matricule + ' : ' + v.driver_name + '\n';
+    });
+
+    const { data: cashiers, error: err2 } = await supabaseClient
+      .from('cashiers')
+      .select('*');
+
+    if (err2) throw err2;
+    result.textContent += '\n✅ CAISSIERS (' + cashiers.length + ' trouvés) :\n';
+    cashiers.forEach(c => {
+      result.textContent += '  - ' + c.name + '\n';
+    });
+
+    result.textContent += '\n🎉 CONNEXION RÉUSSIE !';
+  } catch (e) {
+    result.textContent = '❌ ERREUR : ' + e.message;
+  }
+}
+</script>
+</body>
+</html>
