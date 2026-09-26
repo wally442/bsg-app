@@ -891,17 +891,16 @@ function togglePassword() {
   const visible = input.type === 'text';
   input.type = visible ? 'password' : 'text';
   button.textContent = visible ? 'Voir' : 'Masquer';
-}
-async function enterApp() {
+}async function enterApp() {
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   await loadDataFromSupabase();
   initializeDefaults();
-  switchView(...);
-  ...
-}
-  initializeDefaults();
-  switchView(currentMode === 'caisse' ? 'view-versement' : currentMode === 'compta' ? 'view-dashboard' : 'view-fleet');
+  switchView(
+    currentMode === 'caisse'  ? 'view-versement' :
+    currentMode === 'compta'  ? 'view-dashboard' :
+                                'view-fleet'
+  );
   document.getElementById('login-error')?.classList.add('hidden');
   document.getElementById('login-password')?.blur();
 }
@@ -3341,4 +3340,13 @@ document.addEventListener('DOMContentLoaded', updateOnlineBanner);
 </body>
 </html> 
 
+r('DOMContentLoaded', updateOnlineBanner);
+</script>
+
+
+
+</body>
+</html> 
+
+ml> 
 
