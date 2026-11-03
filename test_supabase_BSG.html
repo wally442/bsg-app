@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Diagnostic Supabase — BSG Gestion de Taxi</title>
+<style>
+:root{color-scheme:light;--bg:#f3f6fb;--card:#fff;--ink:#172033;--muted:#64748b;--line:#e2e8f0;--blue:#1d4ed8;--green:#15803d;--amber:#b45309;--red:#b91c1c}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+header{background:#0f172a;color:#fff;padding:26px 18px}header .wrap,main{max-width:980px;margin:auto}h1{font-size:22px;margin:0 0 5px}header p{margin:0;color:#cbd5e1}
+main{padding:18px}.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:0 0 14px;box-shadow:0 2px 8px #0f172a08}
+h2{font-size:16px;margin:0 0 12px}.hint{font-size:13px;color:var(--muted);margin:6px 0 0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{display:flex;flex-direction:column;gap:5px}label{font-size:12px;font-weight:700;color:#475569}input{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:8px;font:inherit;background:#fff;color:#0f172a}
+.actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:13px}button{border:0;border-radius:9px;padding:11px 15px;font-weight:750;cursor:pointer;background:var(--blue);color:white}button.secondary{background:#e2e8f0;color:#172033}button:disabled{opacity:.55;cursor:wait}
+.notice{padding:12px;border-radius:9px;background:#eff6ff;color:#1e40af;font-size:13px;margin-top:12px}
+.warning{background:#fff7ed;color:#9a3412}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.metric{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:12px}.metric strong{display:block;font-size:22px}.metric span{font-size:12px;color:var(--muted)}
+.result{border:1px solid var(--line);border-radius:10px;padding:12px;margin:9px 0}.result-head{display:flex;justify-content:space-between;gap:12px;align-items:center}.result p{margin:5px 0 0;font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.pill{font-size:11px;font-weight:800;padding:3px 8px;border-radius:30px;background:#e2e8f0;white-space:nowrap}.ok{background:#dcfce7;color:#166534}.warn{background:#fef3c7;color:#92400e}.bad{background:#fee2e2;color:#991b1b}.pending{background:#e2e8f0;color:#475569}
+small,footer{color:var(--muted)}footer{font-size:12px;padding:5px 0 25px}
+@media(max-width:650px){.grid,.summary{grid-template-columns:1fr}header{padding:22px 16px}main{padding:12px}.card{padding:14px}}
+</style>
+</head>
+<body>
+<header><div class="wrap"><h1>🔎 Diagnostic Supabase — BSG</h1><p>Contrôle en lecture seule de la connexion, des tables, des fonctions et du temps réel.</p></div></header>
+<main>
+<section class="card">
+<h2>1. Connexion au projet</h2>
+<div class="grid">
+ <div class="field"><label for="url">URL Supabase</label><input id="url" spellcheck="false"></div>
+ <div class="field"><label for="key">Clé publique (anon / publishable)</label><input id="key" type="password" autocomplete="off" spellcheck="false"></div>
+</div>
+<p class="hint">Les valeurs initiales viennent du fichier principal BSG. Tu peux les modifier si nécessaire. La clé reste dans cette page et n'est pas ajoutée au rapport.</p>
+<div class="grid" style="margin-top:12px">
+ <div class="field"><label for="email">Email (facultatif, pour tester les droits d'un compte)</label><input id="email" type="email" autocomplete="username"></div>
+ <div class="field"><label for="password">Mot de passe Supabase (facultatif)</label><input id="password" type="password" autocomplete="current-password"></div>
+</div>
+<div class="actions"><button id="run">Lancer tous les tests</button><button id="login" class="secondary">Tester la connexion du compte</button><button id="logout" class="secondary">Déconnecter le compte</button></div>
+<div id="connection" class="notice">En attente du lancement des tests.</div>
+<div class="notice warning"><b>Attention au fichier de test précédent :</b> il pointait vers le projet <code>iwaaeqbepfwjttrrilbj</code>, alors que le fichier principal BSG pointe vers <code>zlvnwsfklmeduytnmecd</code>. Ce diagnostic utilise par défaut le projet du fichier principal. Vérifie que c’est bien le projet que tu veux contrôler.</div>
+<div class="notice warning"><b>Mode prudent :</b> aucun ajout, modification ou effacement n'est effectué. Les fonctions <code>clear_transactions</code> et <code>reset_all</code> ne seront jamais appelées.</div>
+</section>
+
+<section class="card">
+<h2>2. Résumé</h2>
+<div class="summary">
+ <div class="metric"><strong id="okCount">0</strong><span>Tests OK</span></div>
+ <div class="metric"><strong id="warnCount">0</strong><span>À vérifier</span></div>
+ <div class="metric"><strong id="badCount">0</strong><span>Erreurs</span></div>
+</div>
+<div id="results"><p class="hint">Les résultats apparaîtront ici.</p></div>
+<div class="actions"><button id="download" class="secondary" disabled>Télécharger le rapport JSON</button></div>
+</section>
+<footer>Diagnostic BSG indépendant de l'application principale. Les tests dépendent des autorisations accordées au compte actuellement connecté. Une lecture refusée ne prouve pas que les données sont absentes.</footer>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<script>
+(() => {
+'use strict';
+const APP_URL = 'https://zlvnwsfklmeduytnmecd.supabase.co';
+const APP_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpsdm53c2ZrbG1lZHV5dG5tZWNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcwMDgyMTgsImV4cCI6MjEwMjU4NDIxOH0.M3EKc6dDX7ZG1ZC0BIBrxei5xpU5BiJwocI28fAk3RI';
+const $ = id => document.getElementById(id);
+$('url').value = APP_URL; $('key').value = APP_KEY;
+const tables = [
+ {name:'profiles', cols:[]},
+ {name:'vehicles', cols:['matricule','driver_name','phone','type','model','rate','start_contract','duration_years','is_default']},
+ {name:'drivers', cols:['id','matricule','name','phone','model','type','rate','start_contract','duration_years','active','source']},
+ {name:'cashiers', cols:['name']},
+ {name:'transactions', cols:['id','datetime','matricule','cashier','paid','target_rate','driver','model','vehicle_type']},
+ {name:'signalements', cols:['id','transaction_id','ancien_matricule','nouveau_matricule','ancien_montant','nouveau_montant','motif','cashier','driver','statut','date_signalement','date_traitement']},
+ {name:'salary_records', cols:['key','payload']},
+ {name:'app_state', cols:['key','value']}
+];
+let client = null, report = null, realtimeChannel = null;
+const stamp = () => new Date().toISOString();
+function safeError(e){return String(e?.message || e || 'Erreur inconnue').slice(0,500)}
+function addResult(category,title,status,detail){
+ const item={category,title,status,detail:String(detail||''),at:stamp()};
+ report?.tests.push(item);
+ const el=document.createElement('div');el.className='result';
+ const head=document.createElement('div');head.className='result-head';
+ const name=document.createElement('b');name.textContent=title;
+ const badge=document.createElement('span');badge.className='pill '+(status==='OK'?'ok':status==='ERREUR'?'bad':status==='ATTENTION'?'warn':'pending');badge.textContent=status;
+ const desc=document.createElement('p');desc.textContent=detail;
+ head.append(name,badge);el.append(head,desc);$('results').append(el);updateCounts();
+}
+function updateCounts(){const a=report?.tests||[];$('okCount').textContent=a.filter(x=>x.status==='OK').length;$('warnCount').textContent=a.filter(x=>x.status==='ATTENTION').length;$('badCount').textContent=a.filter(x=>x.status==='ERREUR').length}
+function makeClient(){
+ const url=$('url').value.trim().replace(/\/+$/,'');const key=$('key').value.trim();
+ if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url))throw Error('URL invalide. Format attendu : https://xxxxx.supabase.co');
+ if(!key)throw Error('La clé publique est vide.');
+ if(!window.supabase?.createClient)throw Error('La bibliothèque Supabase JS ne s’est pas chargée. Vérifie Internet ou le CDN.');
+ return window.supabase.createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+}
+async function runTests(){
+ const btn=$('run');btn.disabled=true;$('results').replaceChildren();
+ report={startedAt:stamp(),projectUrl:$('url').value.trim(),tests:[],notes:[
+ 'Tests en lecture seule. Aucune écriture ni suppression.',
+ 'Les résultats RLS dépendent du rôle actuellement connecté.',
+ 'Le test Realtime vérifie le statut du canal, pas la réception réelle d’un événement.'
+ ]};
+ try{
+  client=makeClient();$('connection').textContent='Client initialisé. Vérification du projet…';
+  addResult('Connexion','Initialisation du client Supabase','OK','La bibliothèque Supabase et la configuration sont chargées.');
+  const {data:authData,error:authError}=await client.auth.getSession();
+  if(authError) addResult('Connexion','État de session','ATTENTION',safeError(authError));
+  else addResult('Connexion','État de session','OK',authData.session?'Session utilisateur active.':'Aucun compte connecté : tests effectués avec la clé publique et le rôle anon.');
+  for(const t of tables){
+   try{
+    let q=client.from(t.name).select('*',{head:false}).limit(1);
+    const {data,error}=await q;
+    if(error){addResult('Tables',`Table ${t.name}`,'ERREUR',`${error.code||''} ${safeError(error)}. Vérifie le nom, les droits SELECT et les politiques RLS.`);continue;}
+    const cols=data?.[0]?Object.keys(data[0]):null;
+    if(t.cols.length&&cols){
+     const missing=t.cols.filter(c=>!cols.includes(c));
+     addResult('Schéma',`Colonnes ${t.name}`,missing.length?'ATTENTION':'OK',missing.length?`Colonnes attendues non trouvées dans la première ligne : ${missing.join(', ')}.`:`Colonnes attendues présentes dans l’échantillon (${cols.length} colonnes visibles).`);
+    }else if(t.cols.length){
+     addResult('Schéma',`Colonnes ${t.name}`,'ATTENTION','Table lisible mais aucune ligne visible : les colonnes ne peuvent pas être comparées à partir d’un échantillon vide.');
+    }else addResult('Schéma',`Structure ${t.name}`,data?.length?'OK':'ATTENTION',data?.length?`Lecture réussie. Colonnes visibles : ${cols.join(', ')}.`:'Lecture réussie, mais aucune ligne visible ; structure non déduite.');
+    const count=await client.from(t.name).select('*',{count:'exact',head:true});
+    if(count.error)addResult('Données',`Comptage ${t.name}`,'ATTENTION',safeError(count.error));
+    else addResult('Données',`Comptage ${t.name}`,'OK',`Nombre de lignes visibles selon les droits du compte : ${count.count??'non communiqué'}.`);
+   }catch(e){addResult('Tables',`Table ${t.name}`,'ERREUR',safeError(e));}
+  }
+  for(const fn of [{name:'app_role',args:null},{name:'is_admin',args:null},{name:'has_role',args:{p_role:'admin'}}]){
+   try{const {data,error}=await client.rpc(fn.name,fn.args||{});if(error)addResult('Fonctions',`RPC ${fn.name}`,'ATTENTION',`${error.code||''} ${safeError(error)}. Fonction absente, droits EXECUTE ou signature à vérifier.`);else addResult('Fonctions',`RPC ${fn.name}`,'OK',`Appel en lecture seule réussi. Résultat : ${JSON.stringify(data)}`);}
+   catch(e){addResult('Fonctions',`RPC ${fn.name}`,'ATTENTION',safeError(e));}
+  }
+  try{
+   if(realtimeChannel)await client.removeChannel(realtimeChannel);
+   realtimeChannel=client.channel('bsg-diagnostic-'+Date.now());
+   realtimeChannel.on('postgres_changes',{event:'*',schema:'public',table:'app_state'},()=>{});
+   await new Promise(resolve=>{
+    let done=false;const finish=(status,detail)=>{if(done)return;done=true;addResult('Temps réel','Abonnement Realtime (app_state)',status,detail);resolve();};
+    const timer=setTimeout(()=>finish('ATTENTION','Aucun statut de souscription reçu en 8 secondes. Vérifie la configuration Realtime.'),8000);
+    realtimeChannel.subscribe(status=>{if(status==='SUBSCRIBED'){clearTimeout(timer);finish('OK','Canal Realtime souscrit. Cela ne prouve pas encore la réception effective d’un changement.');}else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){clearTimeout(timer);finish('ATTENTION',`Statut du canal : ${status}. Vérifie Realtime et les autorisations.`);}});
+   });
+  }catch(e){addResult('Temps réel','Abonnement Realtime','ATTENTION',safeError(e));}
+  $('connection').textContent='Diagnostic terminé. Consulte les statuts et télécharge le rapport JSON.';
+  report.finishedAt=stamp();report.user=authData?.session?.user?.email||null;
+ }catch(e){addResult('Configuration','Démarrage du diagnostic','ERREUR',safeError(e));$('connection').textContent='Le diagnostic n’a pas pu démarrer.';report.finishedAt=stamp();}
+ finally{btn.disabled=false;$('download').disabled=!report;}
+}
+$('run').addEventListener('click',runTests);
+$('login').addEventListener('click',async()=>{
+ try{
+  if(!client)client=makeClient();
+  const email=$('email').value.trim(),password=$('password').value;
+  if(!email||!password)throw Error('Saisis l’email et le mot de passe du compte Supabase.');
+  const {data,error}=await client.auth.signInWithPassword({email,password});
+  if(error)throw error;
+  $('connection').textContent=`Compte connecté : ${data.user?.email||email}. Relance « Lancer tous les tests » pour contrôler ses droits.`;
+  $('password').value='';
+ }catch(e){$('connection').textContent='Connexion du compte impossible : '+safeError(e);}
+});
+$('logout').addEventListener('click',async()=>{
+ try{if(client){const {error}=await client.auth.signOut();if(error)throw error;}$('connection').textContent='Compte déconnecté. Les prochains tests utiliseront la clé publique sans session.';}
+ catch(e){$('connection').textContent='Déconnexion : '+safeError(e);}
+});
+$('download').addEventListener('click',()=>{
+ if(!report)return;
+ const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='rapport_diagnostic_supabase_BSG_'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(a.href);
+});
+})();
+</script>
+</body>
+</html>
